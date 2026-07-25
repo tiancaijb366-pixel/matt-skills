@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets. Follow this workflow:
 
-1. **/tdd** — Implement test-first at the agreed seam. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+1. **TDD** — Read the tdd skill's full content (loaded in context) and follow its instructions — red-green loop at the agreed seam, one slice at a time, no implementation-coupled tests. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
 2. **Ponytail-review** — Run the ponytail-review skill on the changes.
 
