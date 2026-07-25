@@ -8,8 +8,8 @@ Implement the work described by the user in the spec or tickets. Follow this wor
 
 1. /tdd — Red-green at pre-agreed seams. Run typechecking + tests regularly.
 
-2. Ponytail review — Use subagent tool (agent: "reviewer") to check for over-engineering. Fix findings.
+2. /ponytail-review — Subagent (agent: "reviewer") to check for over-engineering. Fix findings.
 
-3. Code review — Use subagent tool (agent: "reviewer") for each axis: Standards + Spec (two parallel calls). Fix findings.
+3. /code-review — Two parallel subagent calls (agent: "reviewer") — Standards + Spec. Fix findings.
 
 4. Commit to the current branch with a descriptive message.
