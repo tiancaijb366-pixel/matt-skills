@@ -12,8 +12,7 @@ Implement the work described by the user in the spec or tickets. Follow this wor
 
 3. **Apply feedback (ponytail)** — Fix every finding from step 2: delete over-engineering, replace with stdlib, simplify. If changes are large, delegate to the "worker" subagent.
 
-4. **Code review (subagent reviewer)** — Use the subagent tool (single mode, agent: "reviewer") to review the changes. Task:
-   > Review the implementation of: {task description}. Run `git diff` to see changes. Check for bugs, security issues, code smells. Output: Files Reviewed / Critical (must fix) / Warnings / Suggestions / Summary.
+4. **/code-review** — Review the implementation.
 
 5. **Apply feedback (review)** — Fix all Critical and Warning issues from the review.
 
