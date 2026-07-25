@@ -4,6 +4,11 @@ description: "Implement a piece of work based on a spec or set of tickets."
 disable-model-invocation: true
 ---
 
+> **Context:** This skill is installed per-project and runs from the project's
+> herdr workspace. The agent's cwd is the project root — no `cd` needed.
+> For cross-project operations, create a dedicated herdr workspace
+> (`herdr workspace create --cwd <path>`) and run commands through its panes.
+
 Implement the work described by the user in the spec or tickets. Follow this workflow:
 
 ### 1. Seams
@@ -44,16 +49,14 @@ Fix findings. Re-run `lens_diagnostics mode=all` to confirm no regressions.
 ### 4. /code-review — two parallel opencode subagents
 
 Spawn a second opencode pane, run Standards + Spec in parallel, then fix
-all findings together and diagnose once.
+all findings together and diagnose once:
 
 ```bash
-# 1. Split a new pane for the second opencode
 SECOND=$(herdr pane split --pane MAIN_PANE --direction right \
   | jq -r '.result.pane.pane_id')
 herdr agent start cr-spec --kind opencode --pane "$SECOND"
 
-# 2. Prompt both in parallel
-# Pane A (existing opencode) — Standards
+# Prompt both in parallel
 herdr agent prompt opencode \
   "Review the latest git diff for Standards violations:
    - repo coding standards (check docs/ if any)
@@ -63,7 +66,6 @@ herdr agent prompt opencode \
    Diff: $(git diff HEAD~1..HEAD)" \
   --wait --timeout 120000 &
 
-# Pane B (new opencode) — Spec
 herdr agent prompt cr-spec \
   "Review the latest git diff against the spec:
    - requirements missing or partial
@@ -72,9 +74,7 @@ herdr agent prompt cr-spec \
    Diff: $(git diff HEAD~1..HEAD)" \
   --wait --timeout 120000 &
 
-wait  # wait for both
-
-# 3. Collect results
+wait
 herdr pane read "$SECOND"
 herdr pane close "$SECOND"
 ```
