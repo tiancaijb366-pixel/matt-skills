@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards** — does the code conform to this repo's documented coding standards?
 - **Spec** — does the code faithfully implement the originating issue / PRD / spec?
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
+Both axes run as **parallel herdr sub-agents** (one pi agent per pane) so they don't pollute each other's context, then this skill aggregates their findings.
 
 The issue tracker should have been provided to you — run `/setup-matt-pocock-skills` if `docs/agents/issue-tracker.md` is missing.
 
@@ -55,9 +55,27 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 - **Middle Man** — a class or function that mostly just delegates onward. → cut it, call the real target direct.
 - **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
 
-### 4. Spawn both sub-agents in parallel
+### 4. Spawn both sub-agents in parallel (herdr)
 
-Send a single message with two `Agent` tool calls. Use the `general-purpose` subagent for both.
+Split two panes and spawn a pi agent in each, then prompt both in parallel:
+
+```bash
+# Pane A — Standards
+herdr pane split --pane CURRENT_PANE --direction right
+herdr agent start cr-standards --kind pi --pane PANE_A
+herdr agent prompt cr-standards "..." --wait --timeout 120000 &
+
+# Pane B — Spec
+herdr pane split --pane CURRENT_PANE --direction right
+herdr agent start cr-spec --kind pi --pane PANE_B
+herdr agent prompt cr-spec "..." --wait --timeout 120000 &
+
+wait
+herdr pane read PANE_A
+herdr pane close PANE_A
+herdr pane read PANE_B
+herdr pane close PANE_B
+```
 
 **Standards sub-agent prompt** — include:
 
