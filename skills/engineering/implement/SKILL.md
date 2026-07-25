@@ -11,15 +11,18 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets. Follow this workflow:
 
-### 1. Seams
+### 1. Read opencode's plan
 
-Read the spec/ticket, identify the test seams. Present them to the user for confirmation before writing any code.
+The plan (written to `architecture/inbox/to/pi/`) already defines the
+seams — scan, display, watch entry points and their test strategy.
+Seams are not re-confirmed with the human; opencode as the planner
+owns that decision.
 
 ### 2. /tdd
 
-Red-green at agreed seams. Drive TDD as:
+Implement per opencode's plan, one module at a time. Drive TDD as:
 
-- **Red** — write one failing test at the agreed seam.
+- **Red** — write one failing test at the seam opencode defined.
 - **Green** — write minimal code to pass it.
 - **Diagnose** — run `lens_diagnostics mode=all` (or `lsp_diagnostics` on changed
   files) to catch lint/type/security issues introduced by this slice. Fix findings
