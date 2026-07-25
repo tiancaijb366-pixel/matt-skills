@@ -6,10 +6,12 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets. Follow this workflow:
 
-1. /tdd — Red-green at pre-agreed seams. Run typechecking + tests regularly.
+1. **Seams** — Read the spec/ticket, identify the test seams. Present them to the user for confirmation before writing any code.
 
-2. /ponytail-review — Subagent (agent: "reviewer") to check for over-engineering. Fix findings.
+2. /tdd — Red-green at agreed seams. Run typechecking + tests regularly.
 
-3. /code-review — Two parallel subagent calls (agent: "reviewer") — Standards + Spec. Fix findings.
+3. /ponytail-review — Subagent (agent: "reviewer") to check for over-engineering. Fix findings.
 
-4. Commit to the current branch with a descriptive message.
+4. /code-review — Two parallel subagent calls (agent: "reviewer") — Standards + Spec. Fix findings.
+
+5. Commit to the current branch with a descriptive message.
