@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards** — does the code conform to this repo's documented coding standards?
 - **Spec** — does the code faithfully implement the originating issue / PRD / spec?
 
-Both axes run as **parallel herdr sub-agents** (one pi agent per pane) so they don't pollute each other's context, then this skill aggregates their findings.
+Both axes run as **sequential opencode rounds** (one agent, no context bleed between rounds), then this skill aggregates the findings.
 
 The issue tracker should have been provided to you — run `/setup-matt-pocock-skills` if `docs/agents/issue-tracker.md` is missing.
 
@@ -55,27 +55,54 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 - **Middle Man** — a class or function that mostly just delegates onward. → cut it, call the real target direct.
 - **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
 
-### 4. Spawn both sub-agents in parallel (herdr)
+### 4. Run both reviews as sequential opencode prompts
 
-Split two panes and spawn a pi agent in each, then prompt both in parallel:
+Use the opencode agent (in its dedicated herdr pane) for both axes, one after
+the other, so they don't pollute each other's context:
 
-```bash
-# Pane A — Standards
-herdr pane split --pane CURRENT_PANE --direction right
-herdr agent start cr-standards --kind pi --pane PANE_A
-herdr agent prompt cr-standards "..." --wait --timeout 120000 &
+**Round A — Standards:**
 
-# Pane B — Spec
-herdr pane split --pane CURRENT_PANE --direction right
-herdr agent start cr-spec --kind pi --pane PANE_B
-herdr agent prompt cr-spec "..." --wait --timeout 120000 &
-
-wait
-herdr pane read PANE_A
-herdr pane close PANE_A
-herdr pane read PANE_B
-herdr pane close PANE_B
 ```
+herdr agent prompt opencode \
+  "Review the latest diff for Standards violations.
+   Diff: $(git diff <fixed-point>...HEAD)
+
+   $(cat docs/agents/issue-tracker.md 2>/dev/null || echo 'No issue tracker doc')
+
+   Baseline smells (always a judgement call):
+   - Mysterious Name — rename if no honest name comes
+   - Duplicated Code — extract shared shape
+   - Feature Envy — method reaches into another object more than its own
+   - Data Clumps — same params travelling together → bundle into one type
+   - Primitive Obsession — primitive for a domain concept → give it a type
+   - Repeated Switches — same switch on same type → polymorphism or map
+   - Shotgun Surgery — one change scatters across many files
+   - Divergent Change — one file changes for many reasons
+   - Speculative Generality — abstraction for needs the spec doesn't have
+   - Message Chains — a.b().c().d() → hide behind one method
+   - Middle Man — mostly delegates → cut, call direct
+   - Refused Bequest — subclass ignores most of what it inherits → composition
+
+   Quote the hunk for each finding. Under 400 words."
+```
+
+**Round B — Spec:**
+
+```
+herdr agent prompt opencode \
+  "Review the latest diff against the spec.
+   Diff: $(git diff <fixed-point>...HEAD)
+   Spec: $(cat <spec-path> 2>/dev/null || echo 'No spec')
+
+   Report:
+   (a) requirements asked for that are missing or partial
+   (b) behaviour in the diff that wasn't asked for (scope creep)
+   (c) requirements that look implemented but wrong
+
+   Quote the spec line for each finding. Under 400 words."
+```
+
+If no spec is available, skip Round B and note it in the final report.
 
 **Standards sub-agent prompt** — include:
 

@@ -6,98 +6,81 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets. Follow this workflow:
 
-### 0. Workspace setup
-
-If the project isn't a git repo yet:
-
-1. `cd` to the project directory.
-2. Run `/setup-matt-pocock-skills` (or set up `docs/agents/` + `AGENTS.md` manually for a local workspace).
-3. `git init && git add -A && git commit -m "init: <project>"`.
-
 ### 1. Seams
 
 Read the spec/ticket, identify the test seams. Present them to the user for confirmation before writing any code.
 
 ### 2. /tdd
 
-Red-green at agreed seams. Run typechecking + tests regularly.
+Red-green at agreed seams. Drive TDD as:
 
-### 3. pi-lens diagnostics
+- **Red** — write one failing test at the agreed seam.
+- **Green** — write minimal code to pass it.
+- **Diagnose** — run `lens_diagnostics mode=all` (or `lsp_diagnostics` on changed
+  files) to catch lint/type/security issues introduced by this slice. Fix findings
+  before the next slice.
 
-After each round of changes, run `lens_diagnostics mode=all` (or `lsp_diagnostics` on the changed files)
-to catch lint/type/security issues early. Fix any findings before moving on.
+Repeat. Typecheck + run single-test-file regularly.
 
-### 4. /ponytail-review — herdr subagent
+### 3. /ponytail-review — opencode subagent
 
-Spawn a dedicated pi agent in a new herdr pane to review for over-engineering:
+Use the opencode agent in its dedicated herdr pane:
 
-```bash
-# Split a new pane
-herdr pane split --pane CURRENT_PANE --direction right
-# Start pi agent (herdr assigns the new pane ID automatically)
-herdr agent start ponytail-review --kind pi --pane NEW_PANE
-# Prompt with the diff context
-herdr agent prompt ponytail-review \
-  "Review the latest changes for over-engineering.
+```
+herdr agent prompt opencode \
+  "Ponytail-review the latest diff for over-engineering.
    Check: reinvented stdlib, speculative abstractions,
    unneeded deps, dead flexibility, boilerplate.
    Output findings as bullet points. Under 300 words.
    Diff: $(git diff HEAD~1..HEAD)" \
   --wait --timeout 120000
-# Read the result
-herdr pane read NEW_PANE
-# Close the pane
-herdr pane close NEW_PANE
 ```
 
-Fix the findings. Then re-run `lens_diagnostics` to confirm.
+If opencode writes findings to a file under `architecture/inbox/to/pi/`, read it;
+otherwise read its terminal output via `herdr pane read <pane-id>`.
 
-### 5. /code-review — two parallel herdr subagents
+Fix findings. Re-run `lens_diagnostics mode=all` to confirm no regressions.
 
-Spawn **two** panes in parallel for Standards and Spec review:
+### 4. /code-review — opencode subagent (two rounds)
 
-```bash
-# Pane A — Standards
-herdr pane split --pane CURRENT_PANE --direction right
-herdr agent start cr-standards --kind pi --pane PANE_A
-herdr agent prompt cr-standards \
-  "Review this diff for Standards violations:
-   - repo coding standards (see docs/ if any)
+OpenCode handles Standards then Spec in sequence (one pane, one agent):
+
+**Round A — Standards:**
+
+```
+herdr agent prompt opencode \
+  "Review the latest git diff for Standards violations:
+   - repo coding standards (check docs/ if any)
    - code smells (Mysterious Name, Duplicated Code,
      Feature Envy, Speculative Generality, etc.)
    Distinguish hard violations from judgement calls.
    Diff: $(git diff HEAD~1..HEAD)" \
-  --wait --timeout 120000 &
+  --wait --timeout 120000
+```
 
-# Pane B — Spec
-herdr pane split --pane CURRENT_PANE --direction right
-herdr agent start cr-spec --kind pi --pane PANE_B
-herdr agent prompt cr-spec \
-  "Review this diff against the spec:
+Fix findings. Re-run `lens_diagnostics mode=all`.
+
+**Round B — Spec:**
+
+```
+herdr agent prompt opencode \
+  "Review the latest git diff against the spec:
    - requirements missing or partial
    - behaviour not asked for (scope creep)
    - requirements that look wrong
    Diff: $(git diff HEAD~1..HEAD)" \
-  --wait --timeout 120000 &
-
-wait  # wait for both
-herdr pane read PANE_A
-herdr pane close PANE_A
-herdr pane read PANE_B
-herdr pane close PANE_B
+  --wait --timeout 120000
 ```
 
-Fix findings. Re-run `lens_diagnostics`.
+Fix findings. Re-run `lens_diagnostics mode=all`.
 
-### 6. Pre-commit check
-
-Before committing:
+### 5. Pre-commit check
 
 - `lens_diagnostics mode=all` — no blocking errors.
 - `lsp_diagnostics path=. severity=error` — no LSP errors.
 - Typecheck + full test suite (if applicable).
 
-### 7. Commit
+### 6. Commit
 
 ```bash
 git add -A && git commit -m "<descriptive message>"
