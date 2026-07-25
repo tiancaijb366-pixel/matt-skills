@@ -6,9 +6,9 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets. Follow this workflow:
 
-1. **TDD** — Read the tdd skill's full content (loaded in context) and follow its instructions — red-green loop at the agreed seam, one slice at a time, no implementation-coupled tests. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+1. **/tdd** — Red-green loop at pre-agreed seams. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
-2. **Ponytail-review** — Run the ponytail-review skill on the changes.
+2. **/ponytail-review** — Review the changes for over-engineering.
 
 3. **Apply feedback (ponytail)** — Fix every finding from step 2: delete over-engineering, replace with stdlib, simplify. If changes are large, delegate to the "worker" subagent.
 
