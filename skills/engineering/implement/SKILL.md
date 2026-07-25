@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets. Follow this workflow:
 
-1. **/tdd** — Red-green loop at pre-agreed seams. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+1. /tdd — Red-green loop at pre-agreed seams. Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
 2. **Review (ponytail)** — Use the subagent tool (single mode, agent: "reviewer"). Task:
    > Review the changes for over-engineering: find code that should be deleted (yml, dead flexibility, unnecessary abstractions), replaced with stdlib, or simplified. Check `git diff`.
