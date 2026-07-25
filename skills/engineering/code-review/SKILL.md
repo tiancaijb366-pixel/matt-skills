@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards** — does the code conform to this repo's documented coding standards?
 - **Spec** — does the code faithfully implement the originating issue / PRD / spec?
 
-Both axes run as **sequential opencode rounds** (one agent, no context bleed between rounds), then this skill aggregates the findings.
+Both axes run as **parallel opencode subagents** (two herdr panes) so they don't pollute each other's context, then this skill aggregates the findings.
 
 The issue tracker should have been provided to you — run `/setup-matt-pocock-skills` if `docs/agents/issue-tracker.md` is missing.
 
@@ -55,19 +55,22 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 - **Middle Man** — a class or function that mostly just delegates onward. → cut it, call the real target direct.
 - **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
 
-### 4. Run both reviews as sequential opencode prompts
+### 4. Spawn both sub-agents in parallel (opencode × 2)
 
-Use the opencode agent (in its dedicated herdr pane) for both axes, one after
-the other, so they don't pollute each other's context:
+Split a second pane, start opencode there, then prompt both in parallel:
 
-**Round A — Standards:**
+```bash
+# Create the second opencode pane
+SECOND=$(herdr pane split --pane CURRENT_PANE --direction right \
+  | jq -r '.result.pane.pane_id')
+herdr agent start cr-spec --kind opencode --pane "$SECOND"
 
-```
+# Standards — existing opencode pane
 herdr agent prompt opencode \
   "Review the latest diff for Standards violations.
    Diff: $(git diff <fixed-point>...HEAD)
 
-   $(cat docs/agents/issue-tracker.md 2>/dev/null || echo 'No issue tracker doc')
+   $(cat docs/agents/issue-tracker.md 2>/dev/null || echo '')
 
    Baseline smells (always a judgement call):
    - Mysterious Name — rename if no honest name comes
@@ -83,13 +86,11 @@ herdr agent prompt opencode \
    - Middle Man — mostly delegates → cut, call direct
    - Refused Bequest — subclass ignores most of what it inherits → composition
 
-   Quote the hunk for each finding. Under 400 words."
-```
+   Quote the hunk for each finding. Under 400 words." \
+  --wait --timeout 120000 &
 
-**Round B — Spec:**
-
-```
-herdr agent prompt opencode \
+# Spec — new opencode pane
+herdr agent prompt cr-spec \
   "Review the latest diff against the spec.
    Diff: $(git diff <fixed-point>...HEAD)
    Spec: $(cat <spec-path> 2>/dev/null || echo 'No spec')
@@ -99,24 +100,17 @@ herdr agent prompt opencode \
    (b) behaviour in the diff that wasn't asked for (scope creep)
    (c) requirements that look implemented but wrong
 
-   Quote the spec line for each finding. Under 400 words."
+   Quote the spec line for each finding. Under 400 words." \
+  --wait --timeout 120000 &
+
+wait  # both done
+
+# Collect results
+herdr pane read "$SECOND"
+herdr pane close "$SECOND"
 ```
 
-If no spec is available, skip Round B and note it in the final report.
-
-**Standards sub-agent prompt** — include:
-
-- The full diff command and commit list.
-- The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full — the sub-agent has no other access to it.
-- The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls — documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
-
-**Spec sub-agent prompt** — include:
-
-- The diff command and commit list.
-- The path or fetched contents of the spec.
-- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
-
-If the spec is missing, skip the Spec sub-agent and note this in the final report.
+If no spec is available, skip the Spec sub-agent and note this in the final report.
 
 ### 5. Aggregate
 

@@ -41,13 +41,19 @@ otherwise read its terminal output via `herdr pane read <pane-id>`.
 
 Fix findings. Re-run `lens_diagnostics mode=all` to confirm no regressions.
 
-### 4. /code-review — opencode subagent (two rounds)
+### 4. /code-review — two parallel opencode subagents
 
-OpenCode handles Standards then Spec in sequence (one pane, one agent):
+Spawn a second opencode pane, run Standards + Spec in parallel, then fix
+all findings together and diagnose once.
 
-**Round A — Standards:**
+```bash
+# 1. Split a new pane for the second opencode
+SECOND=$(herdr pane split --pane MAIN_PANE --direction right \
+  | jq -r '.result.pane.pane_id')
+herdr agent start cr-spec --kind opencode --pane "$SECOND"
 
-```
+# 2. Prompt both in parallel
+# Pane A (existing opencode) — Standards
 herdr agent prompt opencode \
   "Review the latest git diff for Standards violations:
    - repo coding standards (check docs/ if any)
@@ -55,26 +61,27 @@ herdr agent prompt opencode \
      Feature Envy, Speculative Generality, etc.)
    Distinguish hard violations from judgement calls.
    Diff: $(git diff HEAD~1..HEAD)" \
-  --wait --timeout 120000
-```
+  --wait --timeout 120000 &
 
-Fix findings. Re-run `lens_diagnostics mode=all`.
-
-**Round B — Spec:**
-
-```
-herdr agent prompt opencode \
+# Pane B (new opencode) — Spec
+herdr agent prompt cr-spec \
   "Review the latest git diff against the spec:
    - requirements missing or partial
    - behaviour not asked for (scope creep)
    - requirements that look wrong
    Diff: $(git diff HEAD~1..HEAD)" \
-  --wait --timeout 120000
+  --wait --timeout 120000 &
+
+wait  # wait for both
+
+# 3. Collect results
+herdr pane read "$SECOND"
+herdr pane close "$SECOND"
 ```
 
-Fix findings. Re-run `lens_diagnostics mode=all`.
+### 5. Fix & diagnose
 
-### 5. Pre-commit check
+Fix all findings from both reviews. Then run diagnostics once:
 
 - `lens_diagnostics mode=all` — no blocking errors.
 - `lsp_diagnostics path=. severity=error` — no LSP errors.
