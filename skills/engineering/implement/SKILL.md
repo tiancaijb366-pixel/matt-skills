@@ -13,11 +13,27 @@ Implement the work described by the user in the spec or tickets. Follow this wor
 
 ### 1. Seams
 
-Read the spec/ticket, identify the test seams. Present them to the user for confirmation before writing any code.
+Read opencode's plan (from `architecture/inbox/to/pi/`) to extract the test
+seams. Then send the identified seams to opencode for confirmation — do NOT
+ask the human:
+
+```
+herdr agent prompt opencode \
+  "I identified these test seams from your plan. Confirm or adjust:
+   - scanner::scan(root) → Stats
+   - display::table(stats) → stdout
+   - display::json(stats) → stdout
+   - watch::watch(root, interval) → Δ output
+   - CLI args parsing
+   Reply with corrections only, or 'seams confirmed'."
+  --wait --timeout 60000
+```
+
+Once opencode confirms, proceed.
 
 ### 2. /tdd
 
-Red-green at agreed seams. Drive TDD as:
+Red-green at confirmed seams. Drive TDD as:
 
 - **Red** — write one failing test at the agreed seam.
 - **Green** — write minimal code to pass it.
